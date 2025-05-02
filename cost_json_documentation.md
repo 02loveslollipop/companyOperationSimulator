@@ -439,30 +439,12 @@ The files are saved in the same directory as the input JSON file.
    - Progress bar during simulation
    - Period-by-period breakdown in the CSV output
 
-### Variables
+### Special Variables
 
 You can override any global variable when generating a single report. The available variables are:
 
-1. **User-related**:
-   - `users`: Number of app users
-   - `rides_per_user`: Average rides per user per day
-   - `days_of_use`: Days of active usage per month
-   - `user_recurrence`: App check frequency (minutes)
-
-2. **Bus-related**:
-   - `buses`: Number of buses
-   - `bus_operation_time`: Daily operation hours
-   - `bus_route_update_recurrence`: Route update interval
-
 3. **System**:
-   - `month_from_startup`: Months since launch
-   - `averga_ride_time`: Average ride duration
-   - `averga_route_calculation_time`: Route calculation time
-
-4. **Business**:
-   - `companies`: Number of data-buying companies
-   - `request_base_price`: Base price per request
-   - Other variables as defined in the JSON
+   - `month_from_startup`: Months since startup began
 
 All variables must be numeric values. The tool will attempt to convert input to floating-point numbers.
 
