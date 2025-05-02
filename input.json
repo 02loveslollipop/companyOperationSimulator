@@ -9,7 +9,7 @@
             "bus_route_update_recurrence": 1,
             "min_depth_of_query": 5,
             "max_depth_of_query": 900,
-            "average_depth_of_query": 250,
+            "average_depth_of_query": 400,
             "average_requests_per_company": 100,
             "request_base_price": 12,
             "averga_route_calculation_time": 0.5,
@@ -20,7 +20,7 @@
         },
         "variable": {
             "users": {
-                "start": 10000,
+                "start": 1000,
                 "growth_rate": {
                     "type": "linear",
                     "values": 0.1
@@ -33,7 +33,7 @@
                 "increment": 1
             },
             "companies": {
-                "start": 10,
+                "start": 100,
                 "max": 1000,
                 "growth_rate": {
                     "type": "linear",

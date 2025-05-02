@@ -268,32 +268,65 @@ class CostCalculator:
                     # Initialize result accumulator
                     total = 0
                     
+                    # Analyze loop expressions for optimization
+                    exec_steps = loop_struct.get("exec", [])
+                    static_expressions = []
+                    has_dynamic_expressions = False
+                    
+                    # Pre-analyze expressions to identify static ones
+                    for step in exec_steps:
+                        # Skip assignment steps for static analysis
+                        if "=" in step:
+                            has_dynamic_expressions = True
+                            continue
+                            
+                        # Check if expression contains iteration variable 'i'
+                        if 'i' not in step and not any(v for v in self.calculator.local_vars if v in step):
+                            # Expression is static, can be pre-evaluated
+                            static_expressions.append({
+                                'expr': step,
+                                'value': None  # Will be evaluated on first use
+                            })
+                        else:
+                            has_dynamic_expressions = True
+                            
                     # Execute loop steps for each iteration
                     for i in range(iterations):
                         iteration_vars = local_vars.copy()
                         iteration_vars['i'] = i + 1  # 1-based indexing
                         
-                        # Execute each step in the execution list
-                        for step in loop_struct.get("exec", []):
-                            if "=" in step:
-                                # Handle variable assignment
-                                var_name, formula = [x.strip() for x in step.split("=", 1)]
-                                iteration_vars[var_name] = self.calculator.evaluate_with_functions(formula, iteration_vars)
-                            else:
-                                # For non-assignment statements, evaluate the expression
-                                result = self.calculator.evaluate_with_functions(step, iteration_vars)
-                                # Store result for last expression
-                                iteration_vars['result'] = result
+                        # Handle static expressions first
+                        for static_expr in static_expressions:
+                            if static_expr['value'] is None:
+                                # First time seeing this expression, evaluate and cache
+                                static_expr['value'] = self.calculator.evaluate_with_functions(static_expr['expr'], iteration_vars)
+                            iteration_vars['result'] = static_expr['value']
+                        
+                        # Only process dynamic expressions if they exist
+                        if has_dynamic_expressions:
+                            # Execute each step in the execution list
+                            for step in exec_steps:
+                                if "=" in step:
+                                    # Handle variable assignment
+                                    var_name, formula = [x.strip() for x in step.split("=", 1)]
+                                    iteration_vars[var_name] = self.calculator.evaluate_with_functions(formula, iteration_vars)
+                                else:
+                                    # Skip static expressions that were already handled
+                                    if not any(se['expr'] == step for se in static_expressions):
+                                        # For non-assignment statements, evaluate the expression
+                                        result = self.calculator.evaluate_with_functions(step, iteration_vars)
+                                        iteration_vars['result'] = result
                         
                         # After all steps, aggregate the final result based on aggregation method
                         if 'result' in iteration_vars:
-                            if loop_struct.get("aggregation") == "sum":
+                            agg_method = loop_struct.get("aggregation", "sum")
+                            if agg_method == "sum":
                                 total += iteration_vars['result']
-                            elif loop_struct.get("aggregation") == "average":
+                            elif agg_method == "average":
                                 total += iteration_vars['result'] / iterations
-                            elif loop_struct.get("aggregation") == "max":
+                            elif agg_method == "max":
                                 total = max(total, iteration_vars['result'])
-                            elif loop_struct.get("aggregation") == "min":
+                            elif agg_method == "min":
                                 total = min(total, iteration_vars['result']) if i > 0 else iteration_vars['result']
                     
                     self.logger.debug(f"Loop final result after {iterations} iterations: {total}")
