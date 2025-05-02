@@ -33,6 +33,28 @@ class GlobalVars:
     const: Dict[str, Union[int, float, str]]
     variable: Dict[str, Dict]
 
+    def get_initial_values(self) -> Dict[str, Union[int, float]]:
+        """Get initial values for all variables"""
+        values = self.const.copy()
+        # Add initial values for variable parameters
+        for name, config in self.variable.items():
+            if "start" in config:
+                values[name] = float(config["start"])
+        return values
+
+class GlobalVariables:
+    """Class representing global variables structure"""
+    def __init__(self):
+        self.const = {}
+        self.variable = {}
+
+    def from_dict(self, data: Dict) -> None:
+        """Initialize from dictionary data"""
+        if "Constants" in data:
+            self.const = data["Constants"]
+        if "Variables" in data:
+            self.variable = data["Variables"]
+
 @dataclass
 class CostStructure:
     cost: Dict[str, Category]

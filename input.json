@@ -1,4 +1,58 @@
 {
+    "global": {
+        "const": {
+            "rides_per_user": 2,
+            "days_of_use": 30,
+            "user_recurrence": 0.5,
+            "averga_ride_time": 30,
+            "bus_operation_time": 12,
+            "bus_route_update_recurrence": 1,
+            "min_depth_of_query": 5,
+            "max_depth_of_query": 900,
+            "average_depth_of_query": 250,
+            "average_requests_per_company": 100,
+            "request_base_price": 12,
+            "averga_route_calculation_time": 0.5,
+            "buses": 100,
+            "cache_percentage": 0.05,
+            "geocode_refresh_percentage": 0.10,
+            "stored_geocodes": 0
+        },
+        "variable": {
+            "users": {
+                "start": 10000,
+                "growth_rate": {
+                    "type": "linear",
+                    "values": 0.1
+                },
+                "period": 1,
+                "max": 1000000
+            },
+            "month_from_startup": {
+                "start": 1,
+                "increment": 1
+            },
+            "companies": {
+                "start": 10,
+                "max": 1000,
+                "growth_rate": {
+                    "type": "linear",
+                    "values": 0.1
+                }
+            },
+            "stored_geocodes": {
+                "start": 0,
+                "growth_rate": {
+                    "type": "logistic",
+                    "values": {
+                        "k": 1000000,
+                        "r": 0.1
+                    }
+                },
+                "period": 1
+            }
+        }
+    },
     "cost": {
         "client": {
             "description": "The client is the user of the app, who uses the app to request a ride",
@@ -13,7 +67,7 @@
                         "cases": [
                             {
                                 "case": "global.users <= 25000",
-                                "result": 0
+                                "result": "0.0"
                             },
                             {
                                 "case": "global.users > 25000 and global.users <= 125000",
@@ -43,7 +97,7 @@
                         "cases": [
                             {
                                 "case": "requests <= 100000",
-                                "result": 0
+                                "result": "0.0"
                             },
                             {
                                 "case": "requests > 100000 and requests <= 500000",
@@ -73,7 +127,7 @@
                         "cases": [
                             {
                                 "case": "requests <= 100000",
-                                "result": 0
+                                "result": "0.0"
                             },
                             {
                                 "case": "requests > 100000 and requests <= 500000",
@@ -103,7 +157,7 @@
                         "cases": [
                             {
                                 "case": "requests <= 100000",
-                                "result": 0
+                                "result": "0.0"
                             },
                             {
                                 "case": "requests > 100000 and requests <= 500000",
@@ -138,7 +192,7 @@
                         "cases": [
                             {
                                 "case": "drivers <= 25000",
-                                "result": 0
+                                "result": "0.0"
                             },
                             {
                                 "case": "drivers > 25000 and drivers <= 125000",
@@ -168,7 +222,7 @@
                         "cases": [
                             {
                                 "case": "requests <= 100000",
-                                "result": 0
+                                "result": "0.0"
                             },
                             {
                                 "case": "requests > 100000 and requests <= 500000",
@@ -198,7 +252,7 @@
                         "cases": [
                             {
                                 "case": "requests <= 100000",
-                                "result": 0
+                                "result": "0.0"
                             },
                             {
                                 "case": "requests > 100000 and requests <= 500000",
@@ -228,7 +282,7 @@
                         "cases": [
                             {
                                 "case": "requests <= 100000",
-                                "result": 0
+                                "result": "0.0"
                             },
                             {
                                 "case": "requests > 100000 and requests <= 500000",
@@ -259,20 +313,20 @@
                     "unit": "USD",
                     "calculation_function": {
                         "preprocess": {
-                            "requests": "global.users * 50000 * 4"
+                            "requests_1": "(global.users * global.rides_per_user * global.days_of_use * 2 * global.cache_percentage) + (global.stored_geocodes * global.geocode_refresh_percentage)"
                         },
                         "cases": [
                             {
-                                "case": "requests <= 100000",
-                                "result": 0
+                                "case": "requests_1 <= 100000",
+                                "result": "0.0"
                             },
                             {
-                                "case": "requests > 100000 and requests <= 500000",
-                                "result": "(requests - 100000) / 1000 * 5"
+                                "case": "requests_1 > 100000 and requests_1 <= 500000",
+                                "result": "(requests_1 - 100000) / 1000 * 5"
                             },
                             {
-                                "case": "requests > 500000",
-                                "result": "(requests - 100000) / 1000 * 5 + (requests - 500000) / 1000 * 4"
+                                "case": "requests_1 > 500000",
+                                "result": "(requests_1 - 100000) / 1000 * 5 + (requests_1 - 500000) / 1000 * 4"
                             }
                         ]
                     }
@@ -482,47 +536,6 @@
             ]
         }
     },
-    "global": {
-        "const": {
-            "rides_per_user": 2,
-            "days_of_use": 30,
-            "user_recurrence": 0.5,
-            "averga_ride_time": 30,
-            "bus_operation_time": 12,
-            "bus_route_update_recurrence": 1,
-            "min_depth_of_query": 5,
-            "max_depth_of_query": 900,
-            "average_depth_of_query": 250,
-            "average_requests_per_company": 100,
-            "request_base_price": 12,
-            "averga_route_calculation_time": 0.5,
-            "buses": 100
-        },
-        "variable": {
-            "users": {
-                "start": 10000,
-                "growth_rate": {
-                    "type": "linear",
-                    "values": 0.1
-                },
-                  
-                "period": 1,
-                "max": 1000000
-            },
-            "month_from_startup": {
-                "start": 1,
-                "increment": 1
-            },
-            "companies": {
-                "start": 1,
-                "max": 1000,
-                "growth_rate": {
-                    "type": "linear",
-                    "values": 0.1
-                }
-            }
-        }
-    },
     "income": {
         "description": "The income is the money that the company receives from the users and the bus drivers",
         "resource": [
@@ -530,7 +543,7 @@
                 "name": "Microsegmentation data selling",
                 "use_case": "Sell the microsegmentation data to third parties",
                 "calculation_method": "per requests and depth of query",
-                "billing_method": "global.request_base_price * ((10^(-8) * depth_of_query^2) + (0.00015 * depth_of_query)) per request",
+                "billing_method": "global.request_base_price * ((10**(-8) * depth_of_query**2) + (0.00015 * depth_of_query)) per request",
                 "unit": "USD",
                 "calculation_function": {
                     "preprocess": {
@@ -541,7 +554,7 @@
                         "aggregation": "sum",
                         "exec": [
                             "random = $random(global.min_depth_of_query, global.max_depth_of_query, global.average_depth_of_query)",
-                            "result = global.request_base_price * ((10^(-8) * random^2) + (0.00015 * random))"
+                            "result = global.request_base_price * ((10**(-8) * random**2) + (0.00015 * random))"
                         ]
                     }
                 }

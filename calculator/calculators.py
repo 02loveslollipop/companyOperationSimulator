@@ -1,178 +1,403 @@
+import logging
 from datetime import datetime
-from typing import Dict, List, Union
 import re
+import numpy as np
+from typing import Dict, List, Union, Optional
 
 from models.entities import CostStructure, CostReport
 from utils.SkewedRandomGenerator import SkewedRandomGenerator
 
 class Calculator:
-    """Calculator class that evaluates calculation functions"""
-    def __init__(self, global_vars: Dict[str, Union[int, float, str]]):
-        self.global_vars = global_vars
-        self.random_generators = {}
+    """Base calculator class that handles formula evaluation"""
+    logger = logging.getLogger('Calculator')
+    
+    def __init__(self):
+        self.local_vars: Dict[str, Union[int, float, str]] = {}
+        self.global_vars: Dict[str, Union[int, float, str]] = {}
+    
+    def _preprocess_formula(self, formula: Union[str, int, float]) -> str:
+        """Preprocess a formula to handle variables and math operators"""
+        self.logger.debug(f"_preprocess_formula input type: {type(formula)}, value: {formula}")
+        
+        # Ensure formula is a string
+        if isinstance(formula, (int, float)):
+            self.logger.debug(f"Converting numeric value {formula} to string")
+            return str(float(formula))
 
-    def _eval_formula(self, formula: str, local_vars: Dict[str, Union[int, float, str]] = None) -> float:
-        """Evaluates a formula string using the global and local context"""
-        if not isinstance(formula, str):
-            return float(formula)
+        # Now we know formula is a string
+        formula = str(formula).strip()
+        
+        # Handle string numeric values
+        if formula.isdigit():
+            self.logger.debug(f"Found pure integer string: {formula}")
+            return formula
+        if formula.replace('.','',1).isdigit() and formula.count('.') < 2:
+            self.logger.debug(f"Found float string: {formula}")
+            return formula
+            
+        # Replace variable references
+        eval_formula = formula
+        self.logger.debug(f"Starting variable replacement on: {eval_formula}")
+        
+        # Handle global variables
+        if 'global.' in eval_formula:
+            self.logger.debug("Processing global variables")
+            for var_name, value in self.global_vars.items():
+                old_formula = eval_formula
+                eval_formula = eval_formula.replace(f'global.{var_name}', str(float(value)))
+                if old_formula != eval_formula:
+                    self.logger.debug(f"Replaced global.{var_name}={value} -> {eval_formula}")
+                
+        # Handle local variables
+        self.logger.debug("Processing local variables")
+        for var_name, value in self.local_vars.items():
+            old_formula = eval_formula
+            # Replace only exact variable matches to avoid partial replacements
+            eval_formula = re.sub(rf'\b{var_name}\b', str(float(value)), eval_formula)
+            if old_formula != eval_formula:
+                self.logger.debug(f"Replaced {var_name}={value} -> {eval_formula}")
+            
+        # Handle math operations
+        eval_formula = eval_formula.replace('and', ' and ')
+        eval_formula = eval_formula.replace('or', ' or ')
+        
+        self.logger.debug(f"Final preprocessed formula: {eval_formula}")
+        return eval_formula
 
-        context = self.global_vars.copy()
+    def evaluate_formula(self, formula: Union[str, int, float], local_vars: Optional[Dict] = None) -> Union[float, bool]:
+        """Evaluate a formula string using the calculator's variables"""
         if local_vars:
-            context.update(local_vars)
+            self.logger.debug(f"Evaluating formula with local vars: {local_vars}")
+            # Update local variables, converting to float where needed
+            self.local_vars.update({k: float(v) if isinstance(v, (int, float)) else v 
+                                  for k, v in local_vars.items()})
         
-        # Replace global. prefix with nothing since we merged contexts
-        formula = formula.replace("global.", "")
-
-        # Replace power operator ^ with ** for Python
-        formula = formula.replace("^", "**")
+        self.logger.debug(f"Evaluating formula: {formula} (type: {type(formula)})")
         
-        # Handle special $random function
-        if "$random" in formula:
-            random_calls = re.findall(r'\$random\((.*?)\)', formula)
-            for call in random_calls:
-                # First evaluate the arguments in case they contain variables
-                args = [float(eval(x.strip(), {"__builtins__": {}}, context)) for x in call.split(',')]
-                key = f"{args[0]}_{args[1]}_{args[2]}"
-                if key not in self.random_generators:
-                    self.random_generators[key] = SkewedRandomGenerator(args[0], args[1], args[2])
-                random_val = self.random_generators[key].random()
-                formula = formula.replace(f"$random({call})", str(random_val))
+        try:
+            # Handle simple numeric values directly
+            if isinstance(formula, (int, float)):
+                self.logger.debug(f"Converting numeric value {formula} to float")
+                return float(formula)
+            
+            # Handle string numeric values
+            if isinstance(formula, str):
+                formula = formula.strip()
+                if formula.isdigit():
+                    self.logger.debug(f"Converting string integer '{formula}' to float")
+                    return float(formula)
+                if formula.replace('.','',1).isdigit() and formula.count('.') < 2:
+                    self.logger.debug(f"Converting string float '{formula}' to float")
+                    return float(formula)
+                
+            # First preprocess formula to handle variables
+            eval_formula = self._preprocess_formula(str(formula))
+            self.logger.debug(f"Preprocessed formula: {eval_formula}")
+            
+            # Check if formula contains comparison operators
+            if any(op in eval_formula for op in ['<', '>', '=']):
+                result = eval(eval_formula, {"__builtins__": None})
+                self.logger.debug(f"Boolean evaluation result: {result}")
+                return result
+            else:
+                result = eval(eval_formula, {"__builtins__": None})
+                float_result = float(result)
+                self.logger.debug(f"Numeric evaluation result: {float_result}")
+                return float_result
+                
+        except SyntaxError as e:
+            error_msg = f"Syntax error in formula at position {e.offset}:\n{self._format_error_location(str(formula), e.offset)}"
+            self.logger.error(error_msg)
+            raise ValueError(error_msg)
+        except NameError as e:
+            # Find the undefined variable
+            var_match = re.search(r"name '(.+)' is not defined", str(e))
+            var_name = var_match.group(1) if var_match else "unknown"
+            error_msg = f"Undefined variable '{var_name}' in formula:\n{formula}\nAvailable variables: {list(self.local_vars.keys())}"
+            self.logger.error(error_msg)
+            raise ValueError(error_msg)
+        except Exception as e:
+            error_msg = f"Error evaluating formula '{formula}' (type: {type(formula)}): {str(e)}"
+            self.logger.error(error_msg)
+            self.logger.error(f"Local vars: {self.local_vars}")
+            self.logger.error(f"Global vars: {self.global_vars}")
+            raise ValueError(error_msg)
 
-        # If formula contains comparison operators or boolean operators, evaluate as boolean
-        if any(op in formula for op in ['<=', '>=', '<', '>', '==']) or ' and ' in formula or ' or ' in formula:
+    def _format_error_location(self, formula: str, error_position: int) -> str:
+        """Format an error location with an underline"""
+        if error_position < 0:
+            error_position = 0
+        return f"{formula}\n{' ' * error_position}^"
+
+    def _process_random(self, params: str) -> float:
+        """Process a random function call with parameters"""
+        self.logger.debug("Processing $random function call")
+        
+        # First preprocess the parameters to handle global variables
+        processed_params = []
+        for param in params.split(','):
+            param = param.strip()
+            if 'global.' in param:
+                # Handle global variable reference
+                var_name = param.replace('global.', '')
+                if var_name not in self.global_vars:
+                    raise ValueError(f"Undefined global variable '{var_name}' in random function parameters")
+                processed_params.append(str(self.global_vars[var_name]))
+            else:
+                processed_params.append(param)
+        
+        # Now convert parameters to float
+        try:
+            min_val, max_val, mean = map(float, processed_params)
+        except ValueError as e:
+            raise ValueError(f"Invalid parameter values for random function: {processed_params}. All parameters must be numeric.")
+        
+        # Create random generator
+        self.logger.debug(f"Creating new random generator for: min={min_val}, max={max_val}, mean={mean}")
+        generator = SkewedRandomGenerator(min_val, max_val, mean)
+        
+        # Generate and return random value
+        value = generator.random()
+        self.logger.debug(f"Generated random value: {value}")
+        return value
+
+    def evaluate_with_functions(self, formula: str, local_vars: Optional[Dict] = None) -> float:
+        """Evaluate a formula that may contain function calls"""
+        if isinstance(formula, (int, float)):
+            return float(formula)
+            
+        if not isinstance(formula, str):
+            raise ValueError(f"Formula must be a string, got {type(formula)}")
+            
+        # Update local variables
+        if local_vars:
+            self.local_vars.update(local_vars)
+            
+        # Handle special functions
+        if '$random' in formula:
+            # Extract function parameters
+            match = re.search(r'\$random\((.*?)\)', formula)
+            if not match:
+                raise ValueError("Invalid random function call")
+                
+            params = match.group(1)
             try:
-                return bool(eval(formula, {"__builtins__": {}}, context))
-            except TypeError:
-                # If we get a type error, it means we're trying to evaluate a comparison
-                # that resulted in a boolean value
-                return eval(formula, {"__builtins__": {}}, context)
-        
-        return float(eval(formula, {"__builtins__": {}}, context))
+                result = str(self._process_random(params))
+                formula = formula.replace(match.group(0), result)
+            except Exception as e:
+                raise ValueError(f"Error processing random function: {str(e)}")
+                
+        # Now evaluate the formula
+        return self.evaluate_formula(formula)
 
-    def evaluate_function(self, calc_function) -> float:
-        """Evaluates a calculation function and returns the result"""
-        local_vars = {}
-        
-        # Handle preprocessing
-        if calc_function.preprocess:
-            for var_name, formula in calc_function.preprocess.items():
-                local_vars[var_name] = self._eval_formula(formula)
-        
-        # Handle direct formula
-        if calc_function.direct_formula:
-            return self._eval_formula(calc_function.direct_formula, local_vars)
-        
-        # Handle cases
-        if calc_function.cases:
-            for case in calc_function.cases:
-                if self._eval_formula(case.case, local_vars):
-                    return self._eval_formula(case.result, local_vars)
-            raise ValueError("No matching case found")
-        
-        # Handle for loops
-        if calc_function.for_loop:
-            iterations = int(self._eval_formula(calc_function.for_loop["iterator"], local_vars))
-            results = []
-            
-            for _ in range(iterations):
-                loop_vars = local_vars.copy()
-                for statement in calc_function.for_loop["exec"]:
-                    if statement.startswith("result ="):
-                        results.append(self._eval_formula(statement[8:], loop_vars))
-                    else:
-                        var_name, formula = statement.split("=")
-                        loop_vars[var_name.strip()] = self._eval_formula(formula, loop_vars)
-            
-            # Apply aggregation
-            if not results:  # Handle empty results list
-                return 0
-            elif calc_function.for_loop["aggregation"] == "sum":
-                return sum(results)
-            elif calc_function.for_loop["aggregation"] == "average":
-                return sum(results) / len(results)
-            elif calc_function.for_loop["aggregation"] == "max":
-                return max(results)
-            elif calc_function.for_loop["aggregation"] == "min":
-                return min(results)
-            
-        raise ValueError("Invalid calculation function structure")
+class ResourceEvaluationError(Exception):
+    """Exception raised when evaluating a resource calculation fails"""
+    def __init__(self, resource_name: str, category: str, message: str):
+        self.resource_name = resource_name
+        self.category = category
+        self.message = message
+        super().__init__(self.format_error())
+    
+    def format_error(self) -> str:
+        """Format the error message with resource context"""
+        return f"Error evaluating resource '{self.resource_name}' in category '{self.category}':\n{self.message}"
 
 class CostCalculator:
-    """Main calculator class that generates cost reports"""
-    def __init__(self, structure: CostStructure):
-        self.structure = structure
+    """Main calculator class that handles cost structure calculations"""
+    logger = logging.getLogger('CostCalculator')
+    
+    def __init__(self, cost_structure: CostStructure):
+        self.cost_structure = cost_structure
+        self.calculator = Calculator()
+        # Initialize calculator with global variables including variable start values
+        self.calculator.global_vars = self.cost_structure.global_vars.get_initial_values()
 
-    def generate_report(self, global_vars: Dict[str, Union[int, float, str]] = None) -> CostReport:
-        """Generate a cost report for given global variables"""
-        if global_vars is None:
-            global_vars = {k: v for k, v in self.structure.global_vars.const.items()}
-            global_vars.update({k: v["start"] for k, v in self.structure.global_vars.variable.items()})
+    def _calculate_resource_cost(self, resource, category_name: str, global_vars: Optional[Dict] = None) -> float:
+        """Calculate the cost for a single resource"""
+        self.logger.debug(f"Calculating cost for resource: {resource.name}")
         
-        calculator = Calculator(global_vars)
+        try:
+            # Set up calculator with global variables
+            if global_vars is not None:
+                self.calculator.global_vars = global_vars
+
+            # Process preprocessing variables if they exist
+            if resource.calculation_function.preprocess:
+                self.logger.info("Processing preprocessing variables")
+                local_vars = {}
+                for var_name, formula in resource.calculation_function.preprocess.items():
+                    try:
+                        self.logger.debug(f"Evaluating preprocessed variable: {var_name} = {formula}")
+                        local_vars[var_name] = self.calculator.evaluate_with_functions(formula)
+                    except ValueError as e:
+                        raise ValueError(f"Error preprocessing variable '{var_name}': {str(e)}")
+            else:
+                local_vars = {}
+
+            # Handle different calculation methods
+            if resource.calculation_function.cases:
+                self.logger.info(f"Evaluating {len(resource.calculation_function.cases)} cases")
+                # Try each case
+                for case in resource.calculation_function.cases:
+                    self.logger.debug(f"Checking case condition: {case.case}")
+                    try:
+                        if self.calculator.evaluate_formula(case.case, local_vars):
+                            self.logger.debug(f"Case matched, evaluating result: {case.result}")
+                            # Handle simple integer/float results
+                            if case.result.strip().isdigit() or case.result.replace('.','',1).isdigit():
+                                return float(case.result)
+                            return self.calculator.evaluate_with_functions(case.result, local_vars)
+                    except ValueError as e:
+                        raise ValueError(f"Error evaluating case condition '{case.case}': {str(e)}")
+                        
+                raise ValueError(f"No case condition matched for this resource")
+                
+            elif resource.calculation_function.for_loop:
+                self.logger.info("Processing for loop structure")
+                loop_struct = resource.calculation_function.for_loop
+                
+                try:
+                    # Get iterator count from preprocessed variable
+                    iterator_name = loop_struct.get("iterator")
+                    if not iterator_name or iterator_name not in local_vars:
+                        raise ValueError(f"Iterator {iterator_name} not found in preprocessed variables")
+                    
+                    iterations = int(local_vars[iterator_name])
+                    self.logger.debug(f"Loop will run for {iterations} iterations")
+                    
+                    # Initialize result
+                    total = 0
+                    
+                    # Execute loop steps for each iteration
+                    for i in range(iterations):
+                        local_vars['i'] = i + 1  # 1-based indexing
+                        
+                        # Execute each step in the execution list
+                        step_vars = local_vars.copy()
+                        for step in loop_struct.get("exec", []):
+                            if "=" in step:
+                                var_name, formula = [x.strip() for x in step.split("=", 1)]
+                                step_vars[var_name] = self.calculator.evaluate_with_functions(formula, step_vars)
+                            else:
+                                # If no assignment, treat as final result
+                                result = self.calculator.evaluate_with_functions(step, step_vars)
+                                if loop_struct.get("aggregation") == "sum":
+                                    total += result
+                        
+                    self.logger.debug(f"Loop result after aggregation: {total}")
+                    return total
+                    
+                except Exception as e:
+                    raise ValueError(f"Error in for loop: {str(e)}")
+                
+            elif resource.calculation_function.direct_formula:
+                self.logger.info("Evaluating direct formula")
+                return self.calculator.evaluate_with_functions(
+                    resource.calculation_function.direct_formula,
+                    local_vars
+                )
+                
+            else:
+                raise ValueError("Invalid calculation function structure - no calculation method specified")
+                
+        except ValueError as e:
+            raise ResourceEvaluationError(resource.name, category_name, str(e))
+        except Exception as e:
+            raise ResourceEvaluationError(resource.name, category_name, f"Unexpected error: {str(e)}")
+
+    def generate_report(self, global_vars: Optional[Dict] = None) -> CostReport:
+        """Generate a cost report"""
+        self.logger.info("Generating cost report")
         
-        # Calculate costs
+        # Initialize variables
+        if global_vars:
+            # Override specified global variables
+            current_globals = self.cost_structure.global_vars.get_initial_values()
+            current_globals.update(global_vars)
+        else:
+            current_globals = self.cost_structure.global_vars.get_initial_values()
+            
+        # Update calculator with current globals
+        self.calculator.global_vars = current_globals
+
+        # Calculate costs for each category
         costs = {}
         total_cost = 0
-        for category_name, category in self.structure.cost.items():
-            costs[category_name] = {}
+        errors = []
+        
+        for category_name, category in self.cost_structure.cost.items():
+            self.logger.debug(f"Processing category: {category_name}")
+            category_costs = {}
+            
             for resource in category.resource:
                 try:
-                    cost = calculator.evaluate_function(resource.calculation_function)
-                    costs[category_name][resource.name] = cost
+                    cost = self._calculate_resource_cost(resource, category_name, current_globals)
+                    category_costs[resource.name] = cost
                     total_cost += cost
-                except Exception as e:
-                    print(f"Error calculating cost for {resource.name}: {e}")
-        
+                    self.logger.debug(f"Resource {resource.name} cost: {cost}")
+                except ResourceEvaluationError as e:
+                    self.logger.error(str(e))
+                    errors.append(str(e))
+                    category_costs[resource.name] = 0
+            
+            costs[category_name] = category_costs
+
         # Calculate income
+        self.logger.info("Calculating income")
         income = {}
         total_income = 0
-        for resource in self.structure.income.resource:
-            try:
-                inc = calculator.evaluate_function(resource.calculation_function)
-                income[resource.name] = inc
-                total_income += inc
-            except Exception as e:
-                print(f"Error calculating income for {resource.name}: {e}")
         
-        return CostReport(
+        for resource in self.cost_structure.income.resource:
+            try:
+                value = self._calculate_resource_cost(resource, "income", current_globals)
+                income[resource.name] = value
+                total_income += value
+                self.logger.debug(f"Resource {resource.name} income: {value}")
+            except ResourceEvaluationError as e:
+                self.logger.error(str(e))
+                errors.append(str(e))
+                income[resource.name] = 0
+
+        # If there were any errors, raise them all together
+        if errors:
+            raise ValueError("Multiple errors occurred during report generation:\n" + "\n".join(errors))
+
+        # Create and return report
+        report = CostReport(
             timestamp=datetime.now(),
-            global_vars=global_vars,
+            global_vars=current_globals,
             costs=costs,
             income=income,
             total_cost=total_cost,
             total_income=total_income,
             net_result=total_income - total_cost
         )
+        
+        self.logger.info(f"Report generation completed with total cost: {total_cost}, total income: {total_income}")
+        return report
 
     def simulate(self, periods: int) -> List[CostReport]:
-        """Run a simulation for the specified number of periods"""
+        """Run a simulation over multiple periods"""
+        self.logger.info(f"Starting simulation for {periods} periods")
         reports = []
         
-        # Initialize variables
-        global_vars = {k: v for k, v in self.structure.global_vars.const.items()}
-        variable_vars = {k: v["start"] for k, v in self.structure.global_vars.variable.items()}
-        global_vars.update(variable_vars)
-        
-        for period in range(periods):
-            # Generate report for current state
-            report = self.generate_report(global_vars)
-            reports.append(report)
+        # Generate report for each period
+        for i in range(periods):
+            self.logger.debug(f"Generating report for period {i+1}/{periods}")
+            # Create a copy of global variables
+            current_globals = self.cost_structure.global_vars.get_initial_values()
             
-            # Update variables according to their growth rates
-            for var_name, var_config in self.structure.global_vars.variable.items():
-                if "growth_rate" in var_config:
-                    current = global_vars[var_name]
-                    if var_config["growth_rate"]["type"] == "linear":
-                        growth = current * var_config["growth_rate"]["values"]
-                    else:
-                        raise ValueError(f"Unknown growth rate type: {var_config['growth_rate']['type']}")
-                    
-                    new_value = current + growth
-                    if "max" in var_config:
-                        new_value = min(new_value, var_config["max"])
-                    global_vars[var_name] = new_value
-                
-                if "increment" in var_config:
-                    global_vars[var_name] += var_config["increment"]
+            # Update variables that change over time
+            for var_name, var_config in self.cost_structure.global_vars.variable.items():
+                if "growth" in var_config:
+                    growth = float(var_config["growth"])
+                    base = float(current_globals[var_name])
+                    current_globals[var_name] = base * ((1 + growth) ** i)
+                    self.logger.debug(f"Updated variable {var_name} for period {i+1}: {current_globals[var_name]}")
+            
+            # Generate report with updated variables
+            report = self.generate_report(current_globals)
+            reports.append(report)
         
+        self.logger.info(f"Simulation completed, generated {len(reports)} reports")
         return reports
