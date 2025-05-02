@@ -279,7 +279,7 @@ Income can be calculated using various methods:
        "aggregation": "sum",
        "exec": [
          "random = $random(global.min_depth_of_query, global.max_depth_of_query, global.average_depth_of_query)",
-         "result = global.request_base_price * ((10^(-8) * random^2) + (0.00015 * random))"
+         "result = global.request_base_price * ((10**(-8) * random**2) + (0.00015 * random))"
        ]
      }
    }
@@ -465,3 +465,153 @@ You can override any global variable when generating a single report. The availa
    - Other variables as defined in the JSON
 
 All variables must be numeric values. The tool will attempt to convert input to floating-point numbers.
+
+## Expression Language and Special Features
+
+### Reserved Keywords
+
+The following keywords have special meaning in expressions and cannot be used as variable names:
+
+- `global`: Used to access global variables (e.g., `global.users`)
+- `result`: Used in for-loops and exec blocks to store the final value
+- `i`: Used as the iteration counter in for-loops (1-based indexing)
+- `and`, `or`: Used for boolean operations in case conditions
+- `random`: Used as part of the `$random()` function call
+
+### Special Variables
+
+1. **For-loop Variables**:
+   - `i`: Current iteration number (1-based indexing)
+   - `result`: The value to be aggregated across iterations
+
+2. **Preprocessed Variables**:
+   - Available only within their calculation function scope
+   - Can reference other preprocessed variables defined earlier
+   - Cannot be named using reserved keywords
+
+### Edge Cases and Error Handling
+
+1. **Variable Growth**:
+   - **Linear Growth**: When `growth_rate.type` is "linear"
+     ```json
+     "growth_rate": {
+       "type": "linear",
+       "values": 0.1  // 10% growth per period
+     }
+     ```
+     - The value is updated as: `base_value * (1 + rate)**period`
+     - Zero or negative rates are allowed but may not make business sense
+     - A "max" constraint can be specified to cap growth
+
+   - **Logistic Growth**: When `growth_rate.type` is "logistic"
+     ```json
+     "growth_rate": {
+       "type": "logistic",
+       "values": {
+         "k": 1000000,  // Carrying capacity
+         "r": 0.1       // Growth rate
+       }
+     }
+     ```
+     - Uses formula: `K / (1 + ((K-N0)/N0) * e**(-r*t))`
+     - Handles zero initial values by starting at 0.1% of carrying capacity
+     - Useful for modeling S-shaped growth curves
+
+2. **Zero Handling**:
+   - Division by zero is caught and raises an error
+   - Zero initial values in logistic growth use a small non-zero start value
+   - Zero iterations in for-loops return 0 for sum/average, undefined for min/max
+
+3. **Numeric Precision**:
+   - All numeric calculations use 64-bit floating point
+   - Currency values maintain precision up to 6 decimal places
+   - Large numbers (>1e15) may lose precision and should be avoided
+
+4. **Type Conversions**:
+   - String numeric values are automatically converted to numbers
+   - Boolean expressions evaluate to 1.0 (true) or 0.0 (false)
+   - Non-numeric strings in numeric contexts raise errors
+
+### Expression Rules and Syntax
+
+1. **Mathematical Operators**:
+   - Standard operators: `+`, `-`, `*`, `/`, `**` (power)
+   - Parentheses `()` for grouping
+   - Scientific notation (e.g., `1e-8`)
+
+2. **Comparison Operators**:
+   - Equal: `==`
+   - Not equal: `!=`
+   - Greater/Less than: `>`, `<`
+   - Greater/Less than or equal: `>=`, `<=`
+
+3. **Logical Operators**:
+   - `and`: Both conditions must be true
+   - `or`: Either condition must be true
+   - Conditions can be nested with parentheses
+
+4. **Special Functions**:
+   - `$random(min, max, mean)`: Generates skewed random values
+   - Function arguments can be literals or global variables
+   - Missing or invalid arguments raise errors
+
+### Formula Evaluation Order
+
+1. **Preprocessing Phase**:
+   ```json
+   "preprocess": {
+     "var1": "global.users * 2",
+     "var2": "var1 * global.price"  // Can use var1
+   }
+   ```
+   - Variables are processed in order
+   - Later variables can reference earlier ones
+   - Circular references raise errors
+
+2. **For-loop Processing**:
+   ```json
+   "for": {
+     "iterator": "iterations",
+     "aggregation": "sum",
+     "exec": [
+       "temp = global.base * i",
+       "result = temp * 2"
+     ]
+   }
+   ```
+   - Iterator value is calculated first
+   - Each iteration creates a fresh variable scope
+   - Last `result` assignment is used for aggregation
+
+3. **Case Evaluation**:
+   ```json
+   "cases": [
+     {
+       "case": "value < 100",
+       "result": "value * 2"
+     }
+   ]
+   ```
+   - Cases are evaluated in order
+   - First matching case is used
+   - No match raises an error
+
+### Best Practices
+
+1. **Variable Naming**:
+   - Use descriptive names
+   - Avoid reserved keywords
+   - Prefix globals with `global.`
+   - Use snake_case for consistency
+
+2. **Error Prevention**:
+   - Always provide default cases
+   - Check for division by zero
+   - Validate growth rate parameters
+   - Set reasonable min/max bounds
+
+3. **Performance**:
+   - Minimize nested calculations
+   - Use preprocessing for repeated values
+   - Cache common subexpressions
+   - Consider numeric precision needs
