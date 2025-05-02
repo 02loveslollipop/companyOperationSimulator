@@ -5,7 +5,7 @@ from pathlib import Path
 import click
 import sys
 
-from models.entities import (
+from pkg.models.entities import (
     CostStructure, 
     Category, 
     GlobalVars, 
@@ -13,7 +13,7 @@ from models.entities import (
     CalculationFunction,
     CalculationFunctionCase
 )
-from calculator.calculators import CostCalculator
+from pkg.calculator.calculators import CostCalculator
 
 def setup_logging(verbose: bool):
     """Setup logging configuration"""

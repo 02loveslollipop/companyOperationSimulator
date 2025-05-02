@@ -4,8 +4,8 @@ import re
 import numpy as np
 from typing import Dict, List, Union, Optional
 
-from models.entities import CostStructure, CostReport
-from utils.SkewedRandomGenerator import SkewedRandomGenerator
+from pkg.models.entities import CostStructure, CostReport
+from pkg.utils.SkewedRandomGenerator import SkewedRandomGenerator
 
 class Calculator:
     """Base calculator class that handles formula evaluation"""

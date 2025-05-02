@@ -386,24 +386,24 @@ The CLI tool provides two main commands:
 
 1. **Generate a single cost report**:
 ```bash
-python main.py single cost_clean.json [--variables NAME=VALUE...]
+python main.py single <your-file-name>.json [--variables NAME=VALUE...]
 
 # Examples:
-python main.py single cost_clean.json
-python main.py single cost_clean.json --variables users=50000 buses=150
-python main.py single cost_clean.json -v users=100000 -v buses=200 -v rides_per_user=3
+python main.py single <your-file-name>.json
+python main.py single <your-file-name>.json --variables users=50000 buses=150
+python main.py single <your-file-name>.json -v users=100000 -v buses=200 -v rides_per_user=3
 ```
 
 The variables flag can override any global variable defined in the JSON file. Multiple variables can be set using multiple `-v` or `--variables` flags.
 
 2. **Run a simulation over multiple periods**:
 ```bash
-python main.py simulate cost_clean.json [--periods NUMBER]
+python main.py simulate <your-file-name>.json [--periods NUMBER]
 
 # Examples:
-python main.py simulate cost_clean.json
-python main.py simulate cost_clean.json --periods 24
-python main.py simulate cost_clean.json -p 36
+python main.py simulate <your-file-name>.json
+python main.py simulate <your-file-name>.json --periods 24
+python main.py simulate <your-file-name>.json -p 36
 ```
 
 The simulation will use the growth rates and increments defined in the JSON file's `global.variable` section to evolve the variables over time.
