@@ -265,26 +265,38 @@ class CostCalculator:
                     iterations = int(local_vars[iterator_name])
                     self.logger.debug(f"Loop will run for {iterations} iterations")
                     
-                    # Initialize result
+                    # Initialize result accumulator
                     total = 0
                     
                     # Execute loop steps for each iteration
                     for i in range(iterations):
-                        local_vars['i'] = i + 1  # 1-based indexing
+                        iteration_vars = local_vars.copy()
+                        iteration_vars['i'] = i + 1  # 1-based indexing
                         
                         # Execute each step in the execution list
-                        step_vars = local_vars.copy()
                         for step in loop_struct.get("exec", []):
                             if "=" in step:
+                                # Handle variable assignment
                                 var_name, formula = [x.strip() for x in step.split("=", 1)]
-                                step_vars[var_name] = self.calculator.evaluate_with_functions(formula, step_vars)
+                                iteration_vars[var_name] = self.calculator.evaluate_with_functions(formula, iteration_vars)
                             else:
-                                # If no assignment, treat as final result
-                                result = self.calculator.evaluate_with_functions(step, step_vars)
-                                if loop_struct.get("aggregation") == "sum":
-                                    total += result
+                                # For non-assignment statements, evaluate the expression
+                                result = self.calculator.evaluate_with_functions(step, iteration_vars)
+                                # Store result for last expression
+                                iteration_vars['result'] = result
                         
-                    self.logger.debug(f"Loop result after aggregation: {total}")
+                        # After all steps, aggregate the final result based on aggregation method
+                        if 'result' in iteration_vars:
+                            if loop_struct.get("aggregation") == "sum":
+                                total += iteration_vars['result']
+                            elif loop_struct.get("aggregation") == "average":
+                                total += iteration_vars['result'] / iterations
+                            elif loop_struct.get("aggregation") == "max":
+                                total = max(total, iteration_vars['result'])
+                            elif loop_struct.get("aggregation") == "min":
+                                total = min(total, iteration_vars['result']) if i > 0 else iteration_vars['result']
+                    
+                    self.logger.debug(f"Loop final result after {iterations} iterations: {total}")
                     return total
                     
                 except Exception as e:
