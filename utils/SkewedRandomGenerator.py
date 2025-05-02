@@ -1,88 +1,97 @@
 import numpy as np
-import matplotlib.pyplot as plt
 import scipy.stats as stats
-import scipy.optimize as opt
+import logging
 
 class SkewedRandomGenerator:
     """
     A class that generates random values following a skewed normal distribution
     with specified minimum, maximum, and mean values.
     """
+    logger = logging.getLogger('SkewedRandomGenerator')
     
-    def __init__(self, min_val, max_val, target_mean, skewness=0, batch_size=1000):
-        """
-        Initialize the random generator with the specified parameters.
-        
-        Parameters:
-        -----------
-        min_val : float
-            Minimum value of the distribution
-        max_val : float
-            Maximum value of the distribution
-        target_mean : float
-            Target mean value of the distribution
-        skewness : float, optional
-            Skewness parameter (0 for normal distribution, negative for left skew, positive for right skew)
-        batch_size : int, optional
-            Number of samples to pre-generate in batches for efficiency
-        """
-        self.min_val = min_val
-        self.max_val = max_val
-        self.target_mean = target_mean
-        self.skewness = skewness
+    def __init__(self, min_val, max_val, target_mean, skewness=0, batch_size=100):
+        self.logger.debug(f"Initializing generator: min={min_val}, max={max_val}, mean={target_mean}, skewness={skewness}")
+        self.min_val = float(min_val)
+        self.max_val = float(max_val)
+        self.target_mean = float(target_mean)
+        self.skewness = float(skewness)
         self.batch_size = batch_size
         
-        # Optimize the distribution parameters
-        self._optimize_parameters()
+        # Validate inputs
+        if self.min_val >= self.max_val:
+            raise ValueError("min_val must be less than max_val")
+        if self.target_mean < self.min_val or self.target_mean > self.max_val:
+            raise ValueError("target_mean must be between min_val and max_val")
+        
+        # Directly calculate distribution parameters
+        self._calculate_parameters()
         
         # Pre-generate a batch of random values
         self._generate_batch()
     
-    def _optimize_parameters(self):
-        """Optimize the distribution parameters to match the target mean."""
-        def find_distribution_params(params):
-            loc, scale, a = params
-            # Generate a sample from the distribution
-            sample = stats.skewnorm.rvs(a, loc=loc, scale=scale, size=1000)
-            # Clip to min and max values
-            sample = np.clip(sample, self.min_val, self.max_val)
-            # Calculate the mean
-            mean_val = np.mean(sample)
-            # Return the difference between the calculated mean and target mean
-            return abs(mean_val - self.target_mean)
-        
-        # Initial guess for parameters: loc (location), scale, a (skewness parameter)
-        initial_guess = [(self.min_val + self.max_val) / 2, 
-                         (self.max_val - self.min_val) / 6, 
-                         self.skewness]
-        
-        # Optimize to find parameters that give the desired mean
-        result = opt.minimize(find_distribution_params, initial_guess, method='Nelder-Mead')
-        
-        # Get the optimized parameters
-        self.loc, self.scale, self.a = result.x
-        
-        # Store the parameters as a dict too for convenience
+    def _calculate_parameters(self):
+        """Directly calculate the distribution parameters based on min, max, and mean."""
+        self.logger.debug("Calculating distribution parameters")
+
+        # Calculate parameters based on the target range and mean
+        range_size = self.max_val - self.min_val
+        relative_mean = (self.target_mean - self.min_val) / range_size
+
+        # Base scale on range size to ensure good coverage
+        self.scale = range_size / 4  # Using 4 instead of 6 for wider spread
+
+        # Calculate location parameter to achieve target mean
+        # For symmetric distribution (skewness = 0), loc will be target_mean
+        # For skewed distributions, adjust loc based on skewness direction and magnitude
+        skew_factor = np.clip(self.skewness, -3, 3)  # Limit skewness range
+        if relative_mean <= 0.5:
+            # Left side of range - adjust loc rightward for negative skew
+            self.loc = self.target_mean + (self.scale * skew_factor * 0.1)
+            self.a = max(-skew_factor, 0.1)  # Ensure some minimum skewness
+        else:
+            # Right side of range - adjust loc leftward for positive skew
+            self.loc = self.target_mean - (self.scale * skew_factor * 0.1)
+            self.a = max(skew_factor, 0.1)  # Ensure some minimum skewness
+
+        # Store parameters
         self.params = {
             "loc": self.loc,
             "scale": self.scale,
             "a": self.a
         }
+        
+        self.logger.debug(f"Calculated parameters: {self.params}")
     
     def _generate_batch(self):
         """Generate a new batch of random values following the distribution."""
-        # Generate the distribution with optimized parameters
-        distribution = stats.skewnorm.rvs(self.a, loc=self.loc, scale=self.scale, size=self.batch_size)
+        self.logger.debug("Generating new batch of random values")
+        
+        # Generate more values than needed to allow for filtering
+        n_extra = int(self.batch_size * 1.5)
+        distribution = stats.skewnorm.rvs(self.a, loc=self.loc, scale=self.scale, size=n_extra)
         
         # Clip values to stay within min_val and max_val
         distribution = np.clip(distribution, self.min_val, self.max_val)
         
-        # Adjust to exactly match the target mean
-        current_mean = np.mean(distribution)
-        distribution = distribution + (self.target_mean - current_mean)
+        # Add some controlled randomness around the target mean
+        mean_adjustment = np.random.normal(0, self.scale * 0.01, size=len(distribution))
+        distribution = distribution + mean_adjustment
         
-        # Final clip in case the adjustment pushed values outside the boundaries
-        self.values = np.clip(distribution, self.min_val, self.max_val)
+        # Reclip after adjustment
+        distribution = np.clip(distribution, self.min_val, self.max_val)
+        
+        # Ensure we have exactly batch_size values
+        if len(distribution) > self.batch_size:
+            distribution = distribution[:self.batch_size]
+        
+        # Store the batch
+        self.values = distribution
+        
+        # Calculate and log statistics
+        batch_mean = np.mean(self.values)
+        batch_min = np.min(self.values)
+        batch_max = np.max(self.values)
+        self.logger.debug(f"Generated batch statistics - mean: {batch_mean:.2f}, min: {batch_min:.2f}, max: {batch_max:.2f}")
         
         # Initialize the index counter
         self.index = 0
@@ -101,18 +110,19 @@ class SkewedRandomGenerator:
             self._generate_batch()
         
         # Get the next value and increment the index
-        value = self.values[self.index]
+        value = float(self.values[self.index])
         self.index += 1
         
+        self.logger.debug(f"Generated random value: {value}")
         return value
     
     def get_distribution_params(self):
         """
-        Return the optimized distribution parameters.
+        Return the calculated distribution parameters.
         
         Returns:
         --------
         dict
-            A dictionary containing the optimized parameters (loc, scale, a)
+            A dictionary containing the parameters (loc, scale, a)
         """
-        return self.params
+        return self.params.copy()
