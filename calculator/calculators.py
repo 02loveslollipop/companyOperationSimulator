@@ -425,20 +425,59 @@ class CostCalculator:
         """Run a simulation over multiple periods"""
         self.logger.info(f"Starting simulation for {periods} periods")
         reports = []
+        current_globals = self.cost_structure.global_vars.get_initial_values()
         
         # Generate report for each period
         for i in range(periods):
             self.logger.debug(f"Generating report for period {i+1}/{periods}")
-            # Create a copy of global variables
-            current_globals = self.cost_structure.global_vars.get_initial_values()
             
             # Update variables that change over time
             for var_name, var_config in self.cost_structure.global_vars.variable.items():
-                if "growth" in var_config:
-                    growth = float(var_config["growth"])
-                    base = float(current_globals[var_name])
-                    current_globals[var_name] = base * ((1 + growth) ** i)
-                    self.logger.debug(f"Updated variable {var_name} for period {i+1}: {current_globals[var_name]}")
+                # Update month_from_startup
+                if var_name == "month_from_startup":
+                    current_globals[var_name] = float(var_config["start"]) + i
+                    continue
+                
+                # Handle variables with growth rates
+                if "growth_rate" in var_config:
+                    growth_config = var_config["growth_rate"]
+                    self.logger.debug(f"Processing growth for {var_name}: {growth_config}")
+                    
+                    if growth_config["type"] == "linear":
+                        # Linear growth: value * (1 + rate)^period
+                        rate = float(growth_config["values"])
+                        base = float(var_config["start"])
+                        new_value = base * ((1 + rate) ** i)
+                        
+                        # Apply max value constraint if defined
+                        if "max" in var_config:
+                            new_value = min(new_value, float(var_config["max"]))
+                            
+                        current_globals[var_name] = new_value
+                        self.logger.debug(f"Linear growth {var_name}: {new_value}")
+                        
+                    elif growth_config["type"] == "logistic":
+                        # Logistic growth: K / (1 + (K-N0)/N0 * e^(-r*t))
+                        # where K = carrying capacity, r = growth rate, N0 = initial value
+                        K = float(growth_config["values"]["k"])  # Carrying capacity
+                        r = float(growth_config["values"]["r"])  # Growth rate
+                        N0 = float(var_config["start"])         # Initial value
+                        import math
+                        
+                        # Handle case where initial value is 0
+                        if N0 == 0:
+                            # Use small initial value instead of 0
+                            N0 = K * 0.001  # Start with 0.1% of carrying capacity
+                            
+                        new_value = K / (1 + ((K-N0)/N0) * math.exp(-r * i))
+                        current_globals[var_name] = new_value
+                        self.logger.debug(f"Logistic growth {var_name}: {new_value}")
+                
+                # Handle increment-based variables
+                elif "increment" in var_config:
+                    increment = float(var_config["increment"])
+                    current_globals[var_name] = float(var_config["start"]) + (increment * i)
+                    self.logger.debug(f"Increment {var_name}: {current_globals[var_name]}")
             
             # Generate report with updated variables
             report = self.generate_report(current_globals)
