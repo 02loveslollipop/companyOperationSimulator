@@ -1,0 +1,5 @@
+#Ingnore all csv and json files except for input.json
+*.csv
+*.json
+!input.json
+test.py

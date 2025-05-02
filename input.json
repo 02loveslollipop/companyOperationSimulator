@@ -1,0 +1,551 @@
+{
+    "cost": {
+        "client": {
+            "description": "The client is the user of the app, who uses the app to request a ride",
+            "resource": [
+                {
+                    "name": "Mapbox Map SDKs for mobile",
+                    "use_case": "For the users app to show the map",
+                    "calculation_method": "Unique users per month",
+                    "billing_method": "4 USD per 1000 users between 25,000 and 125,000 users per month, 3.2 USD per 1000 users between 125,000 and 250,000 users per month, and 2.4 USD per 1000 users above 250,000 users per month",
+                    "unit": "USD",
+                    "calculation_function": {
+                        "cases": [
+                            {
+                                "case": "global.users <= 25000",
+                                "result": 0
+                            },
+                            {
+                                "case": "global.users > 25000 and global.users <= 125000",
+                                "result": "(global.users - 25000) / 1000 * 4"
+                            },
+                            {
+                                "case": "global.users > 125000 and global.users <= 250000",
+                                "result": "(global.users - 25000) / 1000 * 4 + (global.users - 125000) / 1000 * 3.2"
+                            },
+                            {
+                                "case": "global.users > 250000",
+                                "result": "(global.users - 25000) / 1000 * 4 + (global.users - 125000) / 1000 * 3.2 + (global.users - 250000) / 1000 * 2.4"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "name": "Mapbox Map Matching API",
+                    "use_case": "For the users app to aproximate their position to a road",
+                    "calculation_method": "Requests per month",
+                    "billing_method": "2 USD per 1000 requests between 100,000 and 500,000 requests per month, 1.6 USD per 1000 requests between 500,000 and 1,000,000 requests per month, and 1.2 USD per 1000 requests above 1,000,000 requests per month",
+                    "unit": "USD",
+                    "calculation_function": {
+                        "preprocess": {
+                            "requests": "global.users * global.rides_per_user * global.days_of_use * global.user_recurrence * global.averga_ride_time"
+                        },
+                        "cases": [
+                            {
+                                "case": "requests <= 100000",
+                                "result": 0
+                            },
+                            {
+                                "case": "requests > 100000 and requests <= 500000",
+                                "result": "(requests - 100000) / 1000 * 2"
+                            },
+                            {
+                                "case": "requests > 500000 and requests <= 1000000",
+                                "result": "(requests - 100000) / 1000 * 2 + (requests - 500000) / 1000 * 1.6"
+                            },
+                            {
+                                "case": "requests > 1000000",
+                                "result": "(requests - 100000) / 1000 * 2 + (requests - 500000) / 1000 * 1.6 + (requests - 1000000) / 1000 * 1.2"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "name": "Mapbox Optimization API",
+                    "use_case": "To get the walking/cycling section between the staring point and the bus stop and from the bus stop to the destination",
+                    "calculation_method": "Requests per month",
+                    "billing_method": "2 USD per 1000 requests between 100,000 and 500,000 requests per month, 1.6 USD per 1000 requests between 500,000 and 1,000,000 requests per month, and 1.2 USD per 1000 requests above 1,000,000 requests per month",
+                    "unit": "USD",
+                    "calculation_function": {
+                        "preprocess": {
+                            "requests": "global.users * global.rides_per_user * global.days_of_use"
+                        },
+                        "cases": [
+                            {
+                                "case": "requests <= 100000",
+                                "result": 0
+                            },
+                            {
+                                "case": "requests > 100000 and requests <= 500000",
+                                "result": "(requests - 100000) / 1000 * 2"
+                            },
+                            {
+                                "case": "requests > 500000 and requests <= 1000000",
+                                "result": "(requests - 100000) / 1000 * 2 + (requests - 500000) / 1000 * 1.6"
+                            },
+                            {
+                                "case": "requests > 1000000",
+                                "result": "(requests - 100000) / 1000 * 2 + (requests - 500000) / 1000 * 1.6 + (requests - 1000000) / 1000 * 1.2"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "name": "Mapbox Geocoding API",
+                    "use_case": "For the users to query their starting address and destination address or place name",
+                    "calculation_method": "Requests per month",
+                    "billing_method": "2 USD per 1000 requests between 100,000 and 500,000 requests per month, 1.6 USD per 1000 requests between 500,000 and 1,000,000 requests per month, and 1.2 USD per 1000 requests above 1,000,000 requests per month",
+                    "unit": "USD",
+                    "calculation_function": {
+                        "preprocess": {
+                            "requests": "global.users * global.rides_per_user * global.days_of_use * 3"
+                        },
+                        "cases": [
+                            {
+                                "case": "requests <= 100000",
+                                "result": 0
+                            },
+                            {
+                                "case": "requests > 100000 and requests <= 500000",
+                                "result": "(requests - 100000) / 1000 * 2"
+                            },
+                            {
+                                "case": "requests > 500000 and requests <= 1000000",
+                                "result": "(requests - 100000) / 1000 * 2 + (requests - 500000) / 1000 * 1.6"
+                            },
+                            {
+                                "case": "requests > 1000000",
+                                "result": "(requests - 100000) / 1000 * 2 + (requests - 500000) / 1000 * 1.6 + (requests - 1000000) / 1000 * 1.2"
+                            }
+                        ]
+                    }
+                }
+            ]
+        },
+        "driver": {
+            "description": "The driver is the bus driver, who uses the app to get the best route to pick up and drop off users",
+            "resource": [
+                {
+                    "name": "Mapbox Map SDKs for mobile",
+                    "use_case": "For the drivers app to show the map",
+                    "calculation_method": "Unique users per month",
+                    "billing_method": "4 USD per 1000 users between 25,000 and 125,000 users per month, 3.2 USD per 1000 users between 125,000 and 250,000 users per month, and 2.4 USD per 1000 users above 250,000 users per month",
+                    "unit": "USD",
+                    "calculation_function": {
+                        "preprocess": {
+                            "drivers": "global.buses * 2"
+                        },
+                        "cases": [
+                            {
+                                "case": "drivers <= 25000",
+                                "result": 0
+                            },
+                            {
+                                "case": "drivers > 25000 and drivers <= 125000",
+                                "result": "(drivers - 25000) / 1000 * 4"
+                            },
+                            {
+                                "case": "drivers > 125000 and drivers <= 250000",
+                                "result": "(drivers - 25000) / 1000 * 4 + (drivers - 125000) / 1000 * 3.2"
+                            },
+                            {
+                                "case": "drivers > 250000",
+                                "result": "(drivers - 25000) / 1000 * 4 + (drivers - 125000) / 1000 * 3.2 + (drivers - 250000) / 1000 * 2.4"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "name": "Mapbox Map Matching API",
+                    "use_case": "For the drivers app to aproximate their position to a road",
+                    "calculation_method": "Requests per month",
+                    "billing_method": "2 USD per 1000 requests between 100,000 and 500,000 requests per month, 1.6 USD per 1000 requests between 500,000 and 1,000,000 requests per month, and 1.2 USD per 1000 requests above 1,000,000 requests per month",
+                    "unit": "USD",
+                    "calculation_function": {
+                        "preprocess": {
+                            "requests": "global.buses * global.bus_operation_time * 60 / global.bus_route_update_recurrence"
+                        },
+                        "cases": [
+                            {
+                                "case": "requests <= 100000",
+                                "result": 0
+                            },
+                            {
+                                "case": "requests > 100000 and requests <= 500000",
+                                "result": "(requests - 100000) / 1000 * 2"
+                            },
+                            {
+                                "case": "requests > 500000 and requests <= 1000000",
+                                "result": "(requests - 100000) / 1000 * 2 + (requests - 500000) / 1000 * 1.6"
+                            },
+                            {
+                                "case": "requests > 1000000",
+                                "result": "(requests - 100000) / 1000 * 2 + (requests - 500000) / 1000 * 1.6 + (requests - 1000000) / 1000 * 1.2"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "name": "Mapbox Optimization API",
+                    "use_case": "To optimize the route still passing by the bus stops",
+                    "calculation_method": "Requests per month",
+                    "billing_method": "2 USD per 1000 requests between 100,000 and 500,000 requests per month, 1.6 USD per 1000 requests between 500,000 and 1,000,000 requests per month, and 1.2 USD per 1000 requests above 1,000,000 requests per month",
+                    "unit": "USD",
+                    "calculation_function": {
+                        "preprocess": {
+                            "requests": "global.buses * global.bus_operation_time * 60 / global.bus_route_update_recurrence"
+                        },
+                        "cases": [
+                            {
+                                "case": "requests <= 100000",
+                                "result": 0
+                            },
+                            {
+                                "case": "requests > 100000 and requests <= 500000",
+                                "result": "(requests - 100000) / 1000 * 2"
+                            },
+                            {
+                                "case": "requests > 500000 and requests <= 1000000",
+                                "result": "(requests - 100000) / 1000 * 2 + (requests - 500000) / 1000 * 1.6"
+                            },
+                            {
+                                "case": "requests > 1000000",
+                                "result": "(requests - 100000) / 1000 * 2 + (requests - 500000) / 1000 * 1.6 + (requests - 1000000) / 1000 * 1.2"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "name": "Mapbox Direction API",
+                    "use_case": "To get the best route when internal data doesn't have enough significance level",
+                    "calculation_method": "Requests per month",
+                    "billing_method": "2 USD per 1000 requests between 100,000 and 500,000 requests per month, 1.6 USD per 1000 requests between 500,000 and 1,000,000 requests per month, and 1.2 USD per 1000 requests above 1,000,000 requests per month",
+                    "unit": "USD",
+                    "calculation_function": {
+                        "preprocess": {
+                            "requests": "global.buses * global.bus_operation_time * 60 / global.bus_route_update_recurrence"
+                        },
+                        "cases": [
+                            {
+                                "case": "requests <= 100000",
+                                "result": 0
+                            },
+                            {
+                                "case": "requests > 100000 and requests <= 500000",
+                                "result": "(requests - 100000) / 1000 * 2"
+                            },
+                            {
+                                "case": "requests > 500000 and requests <= 1000000",
+                                "result": "(requests - 100000) / 1000 * 2 + (requests - 500000) / 1000 * 1.6"
+                            },
+                            {
+                                "case": "requests > 1000000",
+                                "result": "(requests - 100000) / 1000 * 2 + (requests - 500000) / 1000 * 1.6 + (requests - 1000000) / 1000 * 1.2"
+                            }
+                        ]
+                    }
+                }    
+            ]
+        },
+    
+        "backend": {
+            "description": "The backend is the server that handles the requests from the users",
+            "resource": [
+                {
+                    "name": "Mapbox Permanent Geocoding API",
+                    "use_case": "For the backend to get the most used addresses and places to reduce the number of requests to the Geocoding API and send to cache for fast access",
+                    "calculation_method": "Requests per month",
+                    "billing_method": "5 USD per 1000 requests between 1 - 500,000 requests per month, 4 USD per 1000 requests above 500,000 requests per month",
+                    "unit": "USD",
+                    "calculation_function": {
+                        "preprocess": {
+                            "requests": "global.users * 50000 * 4"
+                        },
+                        "cases": [
+                            {
+                                "case": "requests <= 100000",
+                                "result": 0
+                            },
+                            {
+                                "case": "requests > 100000 and requests <= 500000",
+                                "result": "(requests - 100000) / 1000 * 5"
+                            },
+                            {
+                                "case": "requests > 500000",
+                                "result": "(requests - 100000) / 1000 * 5 + (requests - 500000) / 1000 * 4"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "name": "AWS Lambda | Route optimization",
+                    "use_case": "For the backend to calculate the best route for the users",
+                    "calculation_method": "Requests per month",
+                    "billing_method": "0.00001667 USD per GB-second  and 0.2 USD per 1 million requests for the first 6 billion GB-seconds, 0.000015 USD per GB-second and 0.2 USD per 1 million requests for the next 9 billion GB-seconds, and 0.000014 USD per GB-second and 0.2 USD per 1 million requests above 15 billion GB-seconds",
+                    "unit": "USD",
+                    "calculation_function": {
+                        "preprocess": {
+                            "requests": "global.users * global.rides_per_user * global.days_of_use",
+                            "total_gb_seconds": "global.users * global.rides_per_user * global.days_of_use * global.averga_route_calculation_time"
+                        },
+                        "cases": [
+                            {
+                                "case": "requests <= 6000000",
+                                "result": "(total_gb_seconds / 1000000) * 0.00001667 + (requests / 1000000) * 0.2"
+                            },
+                            {
+                                "case": "requests > 6000000 and requests <= 15000000",
+                                "result": "(total_gb_seconds / 1000000) * 0.000015 + (requests / 1000000) * 0.2"
+                            },
+                            {
+                                "case": "requests > 15000000",
+                                "result": "(total_gb_seconds / 1000000) * 0.000014 + (requests / 1000000) * 0.2"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "name": "AWS RDS | Main database",
+                    "use_case": "For the backend to store user data, driver data, bus data",
+                    "calculation_method": "Storage per month | Instance type | Backup storage per month",
+                    "billing_method": "1. Below 1000 users: - intance type: db.m6gd.large @ 0.552 USD per hour x 720 hours. - Storage: Provisioned IOPS (io2) @ 0.375 USD per GB-month x 20MB per user x users x 1GB/ 1024MB. 2. Between 1000 and 50000 users: - intance type: db.m6gd.2xlarge @ 2.2088 USD per hour x 720 hours. - Storage: Provisioned IOPS (io2) @ 0.375 USD per GB-month x 25MB per user x users x 1GB/ 1024MB. 3. Between 50000 and 750000 users: - intance type: db.m6gd.4xlarge @ 4.176 USD per hour x 720 hours. - Storage: Provisioned IOPS (io2) @ 0.375 USD per GB-month x 30MB per user x users x 1GB/ 1024MB. 4. Between 75000 and 125000 users: - intance type: db.m6gd.8xlarge @ 8.352 USD per hour x 720 hours. - Storage: Provisioned IOPS (io2) @ 0.375 USD per GB-month x 30MB per user x users x 1GB/ 1024MB. 5. Between 125000 and 200000 users: - intance type: db.m6gd.12xlarge @ 12.528 USD per hour x 720 hours. - Storage: Provisioned IOPS (io2) @ 0.375 USD per GB-month x 32MB per user x users x 1GB/ 1024MB. 6. between 200000-500000 users: - intance type: db.m6id.24xlarge @ 32.284 USD per hour x 720 hours. - Storage: Provisioned IOPS (io2) @ 0.375 USD per GB-month x 40MB per user x users x 1GB/ 1024MB. 7. Above 500000 users: - intance type: db.m6id.32xlarge @ 43.046 USD per hour x 720 hours. - Storage: Provisioned IOPS (io2) @ 0.375 USD per GB-month x 50MB per user x users x 1GB/ 1024MB.",
+                    "unit": "USD",
+                    "calculation_function": {
+                        "cases": [
+                            {
+                                "case": "global.users <= 1000",
+                                "result": "(720 * 0.552) + (global.users * 20 / 1024 * 0.375)"
+                            },
+                            {
+                                "case": "global.users > 1000 and global.users <= 50000",
+                                "result": "(720 * 2.2088) + (global.users * 25 / 1024 * 0.375)"
+                            },
+                            {
+                                "case": "global.users > 50000 and global.users <= 750000",
+                                "result": "(720 * 4.176) + (global.users * 30 / 1024 * 0.375)"
+                            },
+                            {
+                                "case": "global.users > 75000 and global.users <= 125000",
+                                "result": "(720 * 8.352) + (global.users * 30 / 1024 * 0.375)"
+                            },
+                            {
+                                "case": "global.users > 125000 and global.users <= 200000",
+                                "result": "(720 * 12.528) + (global.users * 32 / 1024 * 0.375)"
+                            },
+                            {
+                                "case": "global.users > 200000 and global.users <= 500000",
+                                "result": "(720 * 32.284) + (global.users * 40 / 1024 * 0.375)"
+                            },
+                            {
+                                "case": "global.users > 500000",
+                                "result": "(720 * 43.046) + (global.users * 50 / 1024 * 0.375)"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "name": "Amazon RDS | micro segmentation database",
+                    "use_case": "For the backend to store microsegmentation data and other user behavior data to sell to third parties",
+                    "calculation_method": "Storage per month | Instance type | Backup storage per month",
+                    "billing_method": "1. Below 1000 users: - intance type: db.m6gd.large @ 0.552 USD per hour x 720 hours. - Storage: Provisioned IOPS (io2) @ 0.375 USD per GB-month x 20MB per user x users x 1GB/ 1024MB. 2. Between 1000 and 100000 users: - intance type: db.m6gd.2xlarge @ 2.2088 USD per hour x 720 hours. - Storage: Provisioned IOPS (io2) @ 0.375 USD per GB-month x 25MB per user x users x 1GB/ 1024MB. 3. Between 100000 and 500000 users: - intance type: db.m6gd.4xlarge @ 4.176 USD per hour x 720 hours. - Storage: Provisioned IOPS (io2) @ 0.375 USD per GB-month x 30MB per user x users x 1GB/ 1024MB. 4. 500000+ users: - intance type: db.m6gd.12xlarge @ 12.528 USD per hour x 720 hours. - Storage: Provisioned IOPS (io2) @ 0.375 USD per GB-month x 32MB per user x users x 1GB/ 1024MB.",
+                    "unit": "USD",
+                    "calculation_function": {
+                        "cases": [
+                            {
+                                "case": "global.users <= 1000",
+                                "result": "(720 * 0.552) + (global.users * 20 / 1024 * 0.375)"
+                            },
+                            {
+                                "case": "global.users > 1000 and global.users <= 100000",
+                                "result": "(720 * 2.2088) + (global.users * 25 / 1024 * 0.375)"
+                            },
+                            {
+                                "case": "global.users > 100000 and global.users <= 500000",
+                                "result": "(720 * 4.176) + (global.users * 30 / 1024 * 0.375)"
+                            },
+                            {
+                                "case": "global.users > 500000",
+                                "result": "(720 * 12.528) + (global.users * 32 / 1024 * 0.375)"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "name": "AWS DynamoDB for provisioned Capacity | Bus data ingestion",
+                    "use_case": "to receive the bus data from the bus sensors and use it to calculate the bus route and send it to the bus driver",
+                    "calculation_method": "Storage per month | Write/Read operations per month | Backup storage per month",
+                    "billing_method": "- Write request: 0.625 USD per million requests x buses x bus_operation_time x 60 minutes x 30 seconds. - Read request: 0.125 USD per million requests x buses x bus_operation_time x 60 minutes x 30 seconds. - Storage: 0.25 USD per GB-month x 1GB per bus x buses. x (1.3 x month_from_startup) - Backup storage: 0.10 USD per GB-month x 1GB per bus x buses. x (1.3 x month_from_startup)",
+                    "unit": "USD",
+                    "calculation_function": "(0.625 * global.buses * global.bus_operation_time * 60 * 30 / 1000000) + (0.125 * global.buses * global.bus_operation_time * 60 * 30 / 1000000) + (0.25 * global.buses * 1.3 * global.month_from_startup) + (0.10 * global.buses * 1.3 * global.month_from_startup)"
+                },
+                {
+                    "name": "AWS EKS | Northflank | self-hosted CI/CD kubernetes cluster (normal compute)",
+                    "use_case": "For the client backend service, bus data ingestion service, and user data query service",
+                    "calculation_method": "Storage per month | Instance type | Backup storage per month",
+                    "billing_method": "1. Below 1000 users: - intance type: c8g.large @ 0.00957 USD per hour x 720 hours. - Storage: General Purpose SSD (gp3) @ 0.08 USD per GB-month x 2TB x (1024GB/1TB) 2. Between 1000 and 50000 users: - intance type: c8g.2xlarge @ 0.0383 USD per hour x 720 hours. - Storage: General Purpose SSD (gp3) @ 0.08 USD per GB-month x 4TB x (1024GB/1TB) 3. Between 50000 and 750000 users: - intance type: c8g.4xlarge @ 0.0766 USD per hour x 720 hours. - Storage: General Purpose SSD (gp3) @ 0.08 USD per GB-month x 2TB x (1024GB/1TB) 4. Between 75000 and 125000 users: - intance type: c8g.8xlarge @ 0.1532 USD per hour x 720 hours. - Storage: General Purpose SSD (gp3) @ 0.08 USD per GB-month x 2TB x (1024GB/1TB) 5. Between 125000 and 200000 users: - intance type: c8g.12xlarge @ 0.2298 USD per hour x 720 hours. - Storage: General Purpose SSD (gp3) @ 0.08 USD per GB-month x 2TB x (1024GB/1TB) 6. between 200000-500000 users: - intance type: c8g.24xlarge @ 0.4596 USD per hour x 720 hours. - Storage: General Purpose SSD (gp3) @ 0.08 USD per GB-month x 2TB x (1024GB/1TB) 7. Above 500000 users: - intance type: c8g.32xlarge @ 0.6128 USD per hour x 720 hours. - Storage: General Purpose SSD (gp3) @ 0.08 USD per GB-month x 2TB x (1024GB/1TB)",
+                    "unit": "USD",
+                    "calculation_function": {
+                        "cases": [
+                            {
+                                "case": "global.users <= 1000",
+                                "result": "(720 * 0.00957) + (2 * 1024 * 0.08)"
+                            },
+                            {
+                                "case": "global.users > 1000 and global.users <= 50000",
+                                "result": "(720 * 0.0383) + (4 * 1024 * 0.08)"
+                            },
+                            {
+                                "case": "global.users > 50000 and global.users <= 750000",
+                                "result": "(720 * 0.0766) + (2 * 1024 * 0.08)"
+                            },
+                            {
+                                "case": "global.users > 75000 and global.users <= 125000",
+                                "result": "(720 * 0.1532) + (2 * 1024 * 0.08)"
+                            },
+                            {
+                                "case": "global.users > 125000 and global.users <= 200000",
+                                "result": "(720 * 0.2298) + (2 * 1024 * 0.08)"
+                            },
+                            {
+                                "case": "global.users > 200000 and global.users <= 500000",
+                                "result": "(720 * 0.4596) + (2 * 1024 * 0.08)"
+                            },
+                            {
+                                "case": "global.users > 500000",
+                                "result": "(720 * 0.6128) + (2 * 1024 * 0.08)"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "name": "AWS EKS | Northflank | self-hosted CI/CD kubernetes cluster (Accelerated compute)",
+                    "use_case": "For route pre-calculation job, route optimization service, user microsegmentation job",
+                    "calculation_method": "Storage per month | Instance type | Backup storage per month",
+                    "billing_method": "1. Below 1000 users: - intance type: inf2.xlarge @ 0.09098 USD per hour x 720 hours. - Storage: General Purpose SSD (gp3) @ 0.08 USD per GB-month x 2TB x (1024GB/1TB) 2. Between 1000 and 50000 users: - intance type: inf2.2xlarge @ 0.3639 USD per hour x 720 hours. - Storage: General Purpose SSD (gp3) @ 0.08 USD per GB-month x 0.5TB x (1024GB/1TB) 3. Between 50000 and 750000 users: - intance type: inf2.8xlarge @ 0.2368 USD per hour x 720 hours. - Storage: General Purpose SSD (gp3) @ 0.08 USD per GB-month x 2TB x (1024GB/1TB) 4. Between 75000 and 200000 users: - intance type: inf2.24xlarge @ 0.77888 USD per hour x 720 hours. - Storage: General Purpose SSD (gp3) @ 0.08 USD per GB-month x 2TB x (1024GB/1TB) 5. 200000+ users: - intance type: inf2.48xlarge @ 1.55776 USD per hour x 720 hours. - Storage: General Purpose SSD (gp3) @ 0.08 USD per GB-month x 2TB x (1024GB/1TB)",
+                    "unit": "USD",
+                    "calculation_function": {
+                        "cases": [
+                            {
+                                "case": "global.users <= 1000",
+                                "result": "(720 * 0.09098) + (2 * 1024 * 0.08)"
+                            },
+                            {
+                                "case": "global.users > 1000 and global.users <= 50000",
+                                "result": "(720 * 0.3639) + (0.5 * 1024 * 0.08)"
+                            },
+                            {
+                                "case": "global.users > 50000 and global.users <= 750000",
+                                "result": "(720 * 0.2368) + (2 * 1024 * 0.08)"
+                            },
+                            {
+                                "case": "global.users > 75000 and global.users <= 200000",
+                                "result": "(720 * 0.77888) + (2 * 1024 * 0.08)"
+                            },
+                            {
+                                "case": "global.users > 200000",
+                                "result": "(720 * 1.55776) + (2 * 1024 * 0.08)"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "name": "AWS NAT Gateway | NAT Gateway",
+                    "use_case": "For the backend to access the internet",
+                    "calculation_method": "Data transfer per month and per hour",
+                    "billing_method": "0.045 USD per hour plus 0.045 USD per GB of data processed",
+                    "unit": "USD",
+                    "calculation_function": {
+                        "cases": [
+                            {
+                                "case": "global.users <= 1000",
+                                "result": "(0.045 * 720) + (global.users * 0.5 * 0.045)"
+                            },
+                            {
+                                "case": "global.users > 1000 and global.users <= 50000",
+                                "result": "(0.045 * 720) + (global.users * 0.7 * 0.045)"
+                            },
+                            {
+                                "case": "global.users > 50000 and global.users <= 750000",
+                                "result": "(0.045 * 720) + (global.users * 0.9 * 0.045)"
+                            },
+                            {
+                                "case": "global.users > 75000 and global.users <= 200000",
+                                "result": "(0.045 * 720) + (global.users * 1.2 * 0.045)"
+                            },
+                            {
+                                "case": "global.users > 200000",
+                                "result": "(0.045 * 720) + (global.users * 1.8 * 0.045)"
+                            }
+                        ]
+                    }
+                }
+            ]
+        }
+    },
+    "global": {
+        "const": {
+            "rides_per_user": 2,
+            "days_of_use": 30,
+            "user_recurrence": 0.5,
+            "averga_ride_time": 30,
+            "bus_operation_time": 12,
+            "bus_route_update_recurrence": 1,
+            "min_depth_of_query": 5,
+            "max_depth_of_query": 900,
+            "average_depth_of_query": 250,
+            "average_requests_per_company": 100,
+            "request_base_price": 12,
+            "averga_route_calculation_time": 0.5,
+            "buses": 100
+        },
+        "variable": {
+            "users": {
+                "start": 10000,
+                "growth_rate": {
+                    "type": "linear",
+                    "values": 0.1
+                },
+                  
+                "period": 1,
+                "max": 1000000
+            },
+            "month_from_startup": {
+                "start": 1,
+                "increment": 1
+            },
+            "companies": {
+                "start": 1,
+                "max": 1000,
+                "growth_rate": {
+                    "type": "linear",
+                    "values": 0.1
+                }
+            }
+        }
+    },
+    "income": {
+        "description": "The income is the money that the company receives from the users and the bus drivers",
+        "resource": [
+            {
+                "name": "Microsegmentation data selling",
+                "use_case": "Sell the microsegmentation data to third parties",
+                "calculation_method": "per requests and depth of query",
+                "billing_method": "global.request_base_price * ((10^(-8) * depth_of_query^2) + (0.00015 * depth_of_query)) per request",
+                "unit": "USD",
+                "calculation_function": {
+                    "preprocess": {
+                        "request_count": "global.companies * global.average_requests_per_company"
+                    },
+                    "for": {
+                        "iterator": "request_count",
+                        "aggregation": "sum",
+                        "exec": [
+                            "random = $random(global.min_depth_of_query, global.max_depth_of_query, global.average_depth_of_query)",
+                            "result = global.request_base_price * ((10^(-8) * random^2) + (0.00015 * random))"
+                        ]
+                    }
+                }
+            }
+        ]
+    }
+}
