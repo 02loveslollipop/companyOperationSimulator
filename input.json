@@ -33,11 +33,11 @@
                 "increment": 1
             },
             "companies": {
-                "start": 100,
+                "start": 10,
                 "max": 1000,
                 "growth_rate": {
                     "type": "linear",
-                    "values": 0.1
+                    "values": 0.4
                 }
             },
             "stored_geocodes": {

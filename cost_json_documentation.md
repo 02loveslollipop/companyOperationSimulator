@@ -29,11 +29,7 @@ The Python application uses this JSON structure to run simulations and calculate
 
 ## Cost Categories
 
-The `cost` object contains three main categories:
-
-1. `client` - Costs related to end-user app functionality
-2. `driver` - Costs related to bus driver app functionality
-3. `backend` - Costs related to server infrastructure and services
+A `category` is a high-level grouping of related resources that incur costs or generate income. Each category has a `description` and a list of `resource` objects that detail the specific costs or income sources from that category.
 
 Each category contains:
 - `description`: Text explaining the category
