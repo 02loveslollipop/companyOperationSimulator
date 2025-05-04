@@ -61,7 +61,7 @@ The CLI is useful for generating reports programmatically or as part of automate
     python cli.py simulate input.json -p 24 # Simulate for 24 periods
     ```
 
-See [[CLI Usage|CLI-Usage]] for more details. Output files are generated as described in [[Output Files|Output-Files]].
+See [CLI Usage](https://github.com/02loveslollipop/companyOperationSimulator/wiki/CLI-Usage) for more details. Output files are generated as described in [Output Files](https://github.com/02loveslollipop/companyOperationSimulator/wiki/Output-Files).
 
 **b) Using the Streamlit Dashboard (`app.py`)**
 
@@ -78,17 +78,17 @@ The dashboard provides an interactive way to explore the simulation.
     *   Run the calculation/simulation.
     *   Explore the results, plots, detailed tables, and logs.
 
-See [[Streamlit Dashboard|Streamlit-Dashboard]] for a full feature list.
+See [Streamlit Dashboard](https://github.com/02loveslollipop/companyOperationSimulator/wiki/Streamlit-Dashboard) for a full feature list.
 
 ## Features Overview
 
-*   **JSON Configuration**: Define models, costs, income via a structured JSON. ([[JSON Structure|json-structure]])
-*   **Simulation Engine**: Model growth over time using linear/polynomical/logistic rates or increments. ([[Global Variables|global-variables]])
-*   **Randomization**: Use `$random(min, max, mean)` for Monte Carlo analysis. ([[Randomization and Simulation|Randomization-and-Simulation]])
-*   **Flexible Calculations**: Define resource values using direct formulas, conditional cases, preprocessing steps, or loops. ([[Calculation Functions|calculation-functions]], [[Expression Language|Expression-Language]])
-*   **CLI & Streamlit Interfaces**: Choose between command-line or interactive web UI. ([[CLI Usage|CLI-Usage]], [[Streamlit Dashboard|Streamlit-Dashboard]])
-*   **Detailed Reporting**: Get results in JSON/CSV formats and view calculation logs. ([[Output Files|Output-Files]], [[Streamlit Dashboard|Streamlit-Dashboard]])
-*   **Error Handling**: Guidance on common errors and best practices. ([[Error Handling and Best Practices|Error-Handling-and-Best-Practices]])
+*   **JSON Configuration**: Define models, costs, income via a structured JSON. ([JSON Structure](https://github.com/02loveslollipop/companyOperationSimulator/wiki/Json-structure))
+*   **Simulation Engine**: Model growth over time using linear/polynomical/logistic rates or increments and uses variables in multiple scopes (global/local). ([Global Variables](https://github.com/02loveslollipop/companyOperationSimulator/wiki/Global-variables), [Randomization and Simulation](https://github.com/02loveslollipop/companyOperationSimulator/wiki/Randomization-and-Simulation))
+*   **Randomization**: Use `$random(min, max, mean)` for Monte Carlo analysis. ([Randomization and Simulation](https://github.com/02loveslollipop/companyOperationSimulator/wiki/Randomization-and-Simulation))
+*   **Flexible Calculations**: Define resource values using direct formulas, conditional cases, preprocessing steps, or loops. ([Calculation Functions](https://github.com/02loveslollipop/companyOperationSimulator/wiki/Calculation-functions), [Expression Language](https://github.com/02loveslollipop/companyOperationSimulator/wiki/Expression-Language))
+*   **CLI & Streamlit Interfaces**: Choose between command-line or interactive web UI. ([CLI Usage](https://github.com/02loveslollipop/companyOperationSimulator/wiki/CLI-Usage), [Streamlit Dashboard](https://github.com/02loveslollipop/companyOperationSimulator/wiki/Streamlit-Dashboard))
+*   **Detailed Reporting**: Get results in JSON/CSV formats and view calculation logs. ([Output Files](https://github.com/02loveslollipop/companyOperationSimulator/wiki/Output-Files), [Streamlit Dashboard](https://github.com/02loveslollipop/companyOperationSimulator/wiki/Streamlit-Dashboard))
+*   **Error Handling**: Guidance on common errors and best practices. ([[Error Handling and Best Practices](https://github.com/02loveslollipop/companyOperationSimulator/wiki/Error-Handling-and-Best-Practices))
 
 ## Documentation
 
