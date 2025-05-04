@@ -92,4 +92,4 @@ See [[Streamlit Dashboard|Streamlit-Dashboard]] for a full feature list.
 
 ## Documentation
 
-Detailed documentation is available in the project's Wiki: [[Home]]
+Detailed documentation is available in the project's Wiki: [Home](https://github.com/02loveslollipop/companyOperationSimulator/wiki)
