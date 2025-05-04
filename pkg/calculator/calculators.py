@@ -472,7 +472,53 @@ class CostCalculator:
                         new_value = K / (1 + ((K-N0)/N0) * math.exp(-r * i))
                         current_globals[var_name] = new_value
                         self.logger.debug(f"Logistic growth {var_name}: {new_value}")
-                
+                    
+                    elif growth_config["type"] == "exponential":
+                        # Exponential growth: N(t) = N0 * e^(rt)
+                        """
+                        "var": {
+                            "start": n,
+                            "growth_rate": {
+                                "type": "exponential",
+                                "values": 0.1 # value of r
+                            },
+                            "period": 1,
+                            "max": 1000000
+                        },
+                        """
+                        r = float(growth_config["values"])
+                        N0 = float(var_config["start"])
+                        import math
+                        
+                        new_value = N0 * math.exp(r * i)
+                        
+                        # Apply max value constraint if defined
+                        if "max" in var_config:
+                            new_value = min(new_value, float(var_config["max"]))
+                            
+                        current_globals[var_name] = new_value
+                        self.logger.debug(f"Exponential growth {var_name}: {new_value}")
+                    elif growth_config["type"] == "polynomial":
+                        # Polynomial growth of n degree
+                        """
+                        "var": {
+                            "start": n,
+                            "growth_rate": {
+                                "type": "polynomial",
+                                "values": [0.1, 0.2, 0.3] # [a, b, c, ... , n] for a*x^n + b*x^(n-1) + ... + c
+                            },
+                        """
+                        coeffs = growth_config["values"]
+                        degree = len(coeffs) - 1
+                        new_value = sum(c * (i ** (degree - idx)) for idx, c in enumerate(coeffs))
+                        # Apply max value constraint if defined
+                        if "max" in var_config:
+                            new_value = min(new_value, float(var_config["max"]))
+                        
+                        # Update the variable with the new value
+                        current_globals[var_name] = new_value
+                        self.logger.debug(f"Polynomial growth {var_name}: {new_value}")
+                    
                 # Handle increment-based variables
                 elif "increment" in var_config:
                     increment = float(var_config["increment"])

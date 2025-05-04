@@ -481,6 +481,29 @@ The following keywords have special meaning in expressions and cannot be used as
      - Zero or negative rates are allowed but may not make business sense
      - A "max" constraint can be specified to cap growth
 
+   - **Exponential Growth**: When `growth_rate.type` is "exponential"
+     ```json
+     "growth_rate": {
+       "type": "exponential",
+       "values": 0.1  // Growth rate coefficient r
+     }
+     ```
+     - Uses formula: `N(t) = N0 * e^(rt)` where N0 is initial value, r is growth rate, t is the period
+     - Creates faster growth than linear models, suitable for rapid expansion scenarios
+     - A "max" constraint is highly recommended to prevent unrealistic values
+
+   - **Polynomial Growth**: When `growth_rate.type` is "polynomial"
+     ```json
+     "growth_rate": {
+       "type": "polynomial",
+       "values": [0.1, 0.2, 0.3]  // Coefficients [a, b, c, ..., n]
+     }
+     ```
+     - Uses formula: `a*t^n + b*t^(n-1) + ... + c` where t is the period and [a,b,c,...,n] are coefficients
+     - Powerful for modeling complex growth patterns with multiple inflection points
+     - Order of coefficients is from highest degree to lowest degree
+     - A "max" constraint is recommended for higher-degree polynomials
+
    - **Logistic Growth**: When `growth_rate.type` is "logistic"
      ```json
      "growth_rate": {
