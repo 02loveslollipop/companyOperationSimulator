@@ -353,6 +353,6 @@ if uploaded_file is not None:
         st.exception(e)
 
 else:
-    st.info("☝️ Upload an `input.json` file to begin.")
+    st.info("☝️ Upload an `input.json` file to begin. Check out the documentation in [wiki](%s) for more details." % "https://github.com/02loveslollipop/companyOperationSimulator/wiki")
 
 
