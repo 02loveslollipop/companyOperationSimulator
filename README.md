@@ -4,7 +4,7 @@
 
 ## Intro
 
-This tool simulates and reports operational costs and income for businesses, particularly useful for modeling scenarios like transportation companies. It uses a structured JSON configuration (`input.json`) to define business logic, cost/income resources, and simulation parameters, including growth models and randomization. The tool provides both a Command-Line Interface (CLI) for batch processing and report generation, and an interactive Streamlit web dashboard for visual analysis and parameter tuning.
+This tool simulates and reports operational costs and income for businesses, particularly useful for modeling scenarios like tech companies. It uses a structured JSON configuration (`input.json`) to define business logic, cost/income resources, and simulation parameters, including growth models and randomization. The tool provides both a Command-Line Interface (CLI) for batch processing and report generation, and an interactive Streamlit web dashboard for visual analysis and parameter tuning.
 
 ## Project Structure (Example)
 
